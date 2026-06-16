@@ -1,0 +1,42 @@
+#%RAML 1.0
+title: mc-lead-exp
+version: v1
+mediaType: application/json
+
+/leads:
+
+  post:
+    displayName: Create Lead
+    description: Creates a new lead in the CRM system.
+    body:
+      application/json:
+        type: !include /post-lead-dataType.raml
+    responses:
+      201:
+        description: Lead created successfully
+        body:
+          application/json:
+            example:
+              [
+    {
+        "message": "lead sucessfully created",
+        "id": "00Qg5000004yNCUEA2"
+    }
+]
+
+  /{leadId}:
+
+    uriParameters:
+      leadId:
+        type: string
+        example: "LD1001"
+
+    get:
+      displayName: Get Lead By ID
+      description: Retrieves a lead using the Lead ID.
+
+      responses:
+        200:
+          description: Lead found
+          body:
+            application/json:

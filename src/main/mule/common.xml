@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="commonRequestSub_Flow" doc:id="25f19934-73ac-42a1-a73b-4d101c838f42" >
+		<logger level="INFO" doc:name="Logger" doc:id="10274610-d33d-4550-929c-b408ef4a9684" message="**********************Request for #[vars.url] triggered**********************"/>
+		<http:request method="#[vars.method]" doc:name="Request" doc:id="b6342abf-214e-454a-8fc7-022be9c72864" url="#[vars.url]">
+			<http:body ><![CDATA[#[vars.requestPayload]]]></http:body>
+			<http:headers ><![CDATA[#[vars.headers default {}]]]></http:headers>
+		</http:request>
+		<logger level="INFO" doc:name="Logger" doc:id="446de428-027f-442f-81b8-ad22ffc19377" message="**********************Request for #[vars.url] completed**********************" />
+	</sub-flow>
+</mule>

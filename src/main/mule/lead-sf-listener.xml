@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:anypoint-mq="http://www.mulesoft.org/schema/mule/anypoint-mq"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+      xmlns:email="http://www.mulesoft.org/schema/mule/email"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+        http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+        http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/anypoint-mq http://www.mulesoft.org/schema/mule/anypoint-mq/current/mule-anypoint-mq.xsd">
+
+    <!-- ============================================================
+         YAML Configuration Properties for Salesforce and Email
+         ============================================================ -->
+
+    <!-- ============================================================
+         Salesforce Global Configuration
+         ============================================================ -->
+    <salesforce:sfdc-config
+        name="salesforceConfig"
+        doc:name="Salesforce Config"
+        doc:description="Salesforce basic-connection config using externalized YAML credentials">
+        <salesforce:basic-connection
+            username="${sf.username}"
+            password="${sf.password}"
+            securityToken="${sf.security.token}"
+            url="${sf.auth.url}" />
+    </salesforce:sfdc-config>
+
+    <!-- ============================================================
+         Email SMTP Global Configuration
+         ============================================================ -->
+
+    <!-- ============================================================
+         Lead Change Data Capture Listener Flow
+         Listens for Salesforce Lead CDC events on /data/LeadChangeEvent
+         and sends an email notification for each change.
+         ============================================================ -->
+    <anypoint-mq:config name="Anypoint_MQ_Config" doc:name="Anypoint MQ Config" doc:id="a9880782-02a6-4737-92f1-a3c0aee4a387" >
+		<anypoint-mq:connection url="${mq.url}" clientId="${mq.client.id}" clientSecret="${mq.client.secret}" />
+	</anypoint-mq:config>
+	<flow name="lead-cdc-listener-flow"
+          doc:name="Lead CDC Listener Flow"
+          doc:description="Subscribes to Salesforce Lead Change Data Capture events and sends email notification on each Lead record change">
+
+        <!-- CDC Source: Subscribe to Lead Change Event channel -->
+        <salesforce:replay-channel-listener
+            config-ref="salesforceConfig"
+            streamingChannel="/data/LeadChangeEvent"
+            replayOption="ALL"
+            doc:name="Lead Change Event Listener"
+            doc:description="Subscribes to Salesforce CDC channel /data/LeadChangeEvent to receive all Lead record create, update, and delete events" />
+
+        <!-- Log incoming event -->
+		<logger
+            level="INFO"
+            message="Record change request received."
+            doc:name="Start Logger"
+            doc:description="Logs the incoming Salesforce Lead CDC event with its Replay ID" />
+
+        <!-- Extract Lead change details from CDC event payload -->
+        <ee:transform
+            doc:name="Store Payload"
+            doc:description="Extracts Lead Id, Change Type, Replay Id, and event Timestamp from the Salesforce CDC event">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload..'payload']]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+
+        <!-- Compose the email notification body -->
+
+        <!-- Log before sending email -->
+
+        <!-- Send email notification via SMTP -->
+
+        <!-- Log successful email dispatch -->
+        <anypoint-mq:publish doc:name="Salesforce_LeadBackup_MQ_Config" doc:id="80c5024c-8609-4c17-bd89-289a709244b8" config-ref="Anypoint_MQ_Config" destination="${queue.name}"/>
+		<logger
+            level="INFO"
+            message="Record change request completed."
+            doc:name="End Logger"
+            doc:description="Confirms email notification was sent successfully for the Lead CDC event" />
+
+        <!-- Flow-level error handler -->
+        <error-handler>
+            <on-error-continue
+                type="ANY"
+                doc:name="Handle Any Error"
+                doc:description="Catches any processing error in the Lead CDC flow, logs it, and continues to keep the listener active">
+                <logger
+                    level="ERROR"
+                    message="#['[CDC-Lead] ERROR processing Lead change event. Error type: ' ++ error.errorType.identifier ++ ' | Description: ' ++ (error.description default 'No description') ++ ' | Cause: ' ++ (error.cause.message default 'N/A')]"
+                    doc:name="Log Processing Error"
+                    doc:description="Logs the error type, description, and cause when Lead CDC event processing fails" />
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+
+</mule>
